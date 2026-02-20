@@ -8,10 +8,6 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
-  },
-  "options_page": "options.html",
-  "action": {
     "default_popup": "popup.html",
     "default_icon": {
       "16": "mylogo.png",
@@ -19,6 +15,7 @@
       "128": "mylogo.png"
     }
   },
+  "options_page": "options.html",
   "icons": {
     "16": "mylogo.png",
     "48": "mylogo.png",
