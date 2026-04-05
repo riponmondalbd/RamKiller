@@ -23,6 +23,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 document.getElementById("save").addEventListener("click", async () => {
+  const btn = document.getElementById("save");
+  const originalText = btn.innerText;
+
   const settings = {
     idleTime: Number(document.getElementById("idleTime").value),
     whitelist: document
@@ -35,6 +38,22 @@ document.getElementById("save").addEventListener("click", async () => {
     mode: document.getElementById("mode").value,
   };
 
+  btn.disabled = true;
+  btn.innerText = "Saving...";
+
   await chrome.storage.sync.set(settings);
-  alert("Settings saved!");
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.innerText = originalText;
+    showToast();
+  }, 600);
 });
+
+function showToast() {
+  const toast = document.getElementById("toast");
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3000);
+}

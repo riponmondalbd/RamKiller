@@ -10,15 +10,15 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "mylogo.png",
-      "48": "mylogo.png",
-      "128": "mylogo.png"
+      "16": "icon_16.png",
+      "48": "icon_48.png",
+      "128": "icon_128.png"
     }
   },
   "options_page": "options.html",
   "icons": {
-    "16": "mylogo.png",
-    "48": "mylogo.png",
-    "128": "mylogo.png"
+    "16": "icon_16.png",
+    "48": "icon_48.png",
+    "128": "icon_128.png"
   }
 }

@@ -174,4 +174,27 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// ===== Message Listener for Popup/Options =====
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "getStats") {
+    chrome.tabs.query({}, (tabs) => {
+      sendResponse({
+        totalTabs: tabs.length,
+        suspendedTabs: tabs.filter((t) => t.discarded).length,
+      });
+    });
+    return true; // Keep channel open for async response
+  }
+
+  if (message.action === "killIdleNow") {
+    checkTabs();
+    sendResponse({ status: "killing" });
+  }
+
+  if (message.action === "resetCount") {
+    clearCache();
+    sendResponse({ status: "reset" });
+  }
+});
+
 console.log("Service worker loaded ✅");

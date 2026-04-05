@@ -1,139 +1,310 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
-    <title>Ram Killer Settings</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ram Killer - Settings</title>
+    <link rel="icon" type="image/png" href="icon_pro.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --accent: #fb923c;
+        --accent-hover: #f97316;
+        --text-base: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --input-focus: #fb923c;
+        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      }
+
       body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #f4f6f9;
+        font-family: "Outfit", sans-serif;
+        background: var(--bg);
+        color: var(--text-base);
         margin: 0;
-        padding: 40px 20px;
         display: flex;
         justify-content: center;
+        min-height: 100vh;
+        padding: 40px 20px;
       }
 
-      .container {
-        background: white;
+      .settings-container {
         width: 100%;
-        max-width: 520px;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        max-width: 580px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
       }
 
-      h2 {
-        margin-top: 0;
-        margin-bottom: 25px;
+      header {
+        text-align: center;
+        margin-bottom: 8px;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+      }
+
+      header p {
+        color: var(--text-muted);
+        margin-top: 8px;
+        font-size: 16px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: var(--shadow);
+      }
+
+      .section-title {
+        font-size: 14px;
         font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .section-title::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
       }
 
       .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
+      }
+
+      .form-group:last-child {
+        margin-bottom: 0;
       }
 
       label {
         display: block;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 500;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
+      }
+
+      .label-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 12px;
       }
 
       input[type="number"],
-      textarea,
-      select {
+      select,
+      textarea {
         width: 100%;
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #dcdfe6;
-        font-size: 14px;
-        outline: none;
-        transition: 0.2s ease;
+        padding: 12px 16px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-size: 15px;
+        font-family: inherit;
+        transition: all 0.2s;
         box-sizing: border-box;
       }
 
       input[type="number"]:focus,
-      textarea:focus,
-      select:focus {
-        border-color: #ff6b00;
-        box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.15);
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--input-focus);
+        box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.15);
       }
 
       textarea {
         resize: vertical;
-        min-height: 100px;
+        min-height: 120px;
       }
 
       .checkbox-group {
         display: flex;
-        align-items: center;
-        gap: 10px;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        background: #f1f5f9;
+        border-radius: 12px;
         margin-bottom: 12px;
-        font-size: 14px;
+        transition: background 0.2s;
+        cursor: pointer;
+      }
+
+      .checkbox-group:hover {
+        background: #e2e8f0;
       }
 
       .checkbox-group input {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        cursor: pointer;
+        accent-color: var(--accent);
+      }
+
+      .checkbox-label {
+        font-size: 15px;
+        font-weight: 500;
         cursor: pointer;
       }
 
-      button {
-        width: 100%;
-        padding: 12px;
-        border: none;
-        border-radius: 8px;
-        background: #ff6b00;
+      .checkbox-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+        display: block;
+        margin-top: 2px;
+      }
+
+      .save-btn {
+        background: var(--accent);
         color: white;
-        font-size: 14px;
+        border: none;
+        padding: 16px;
+        border-radius: 12px;
+        font-size: 16px;
         font-weight: 600;
         cursor: pointer;
-        transition: 0.2s ease;
+        width: 100%;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(251, 146, 60, 0.3);
       }
 
-      button:hover {
-        background: #e55f00;
+      .save-btn:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(251, 146, 60, 0.4);
+      }
+
+      .save-btn:active {
+        transform: translateY(0);
+      }
+
+      .success-toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #10b981;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-weight: 600;
+        box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 1000;
+      }
+
+      .success-toast.show {
+        transform: translateX(-50%) translateY(0);
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h2 style="text-align: center">Ram Killer Settings</h2>
+    <div class="settings-container">
+      <header>
+        <img src="icon_pro.png" alt="logo" style="width: 64px; height: 64px; margin-bottom: 16px;">
+        <h1>Ram Killer <span style="color: var(--accent)">Pro</span></h1>
+        <p>Optimize your browser's performance</p>
+      </header>
 
-      <div class="form-group">
-        <label for="idleTime">Idle time (minutes)</label>
-        <input type="number" id="idleTime" min="1" />
+      <div class="card">
+        <div class="section-title">Behavior</div>
+
+        <div class="form-group">
+          <label for="idleTime">Idle timeout</label>
+          <span class="label-desc"
+            >Suspend inactive tabs after this many minutes.</span
+          >
+          <div style="display: flex; align-items: center; gap: 12px">
+            <input type="number" id="idleTime" min="1" value="10" />
+            <span style="font-weight: 500; color: var(--text-muted)"
+              >minutes</span
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="mode">Suspension Mode</label>
+          <span class="label-desc"
+            >How should the extension handle idle tabs?</span
+          >
+          <select id="mode">
+            <option value="discard">Discard (Best Memory Saving)</option>
+            <option value="autoReload">Auto Reload on Activation</option>
+            <option value="manualReload">Manual Reload (Reload on Click)</option>
+          </select>
+        </div>
+
+        <div class="section-title">Exceptions</div>
+
+        <label class="checkbox-group">
+          <input type="checkbox" id="skipPinned" checked />
+          <div>
+            <span class="checkbox-label">Skip pinned tabs</span>
+            <span class="checkbox-desc">Keep your important pinned tabs always active.</span>
+          </div>
+        </label>
+
+        <label class="checkbox-group">
+          <input type="checkbox" id="skipAudio" checked />
+          <div>
+            <span class="checkbox-label">Skip tabs playing audio</span>
+            <span class="checkbox-desc">Don't interrupt your music or video streams.</span>
+          </div>
+        </label>
+
+        <div class="form-group" style="margin-top: 24px">
+          <label for="whitelist">Domain Whitelist</label>
+          <span class="label-desc"
+            >One domain per line. Supports wildcards (e.g., *.youtube.com).</span
+          >
+          <textarea
+            id="whitelist"
+            placeholder="*.gmail.com&#10;*.slack.com&#10;github.com"
+          ></textarea>
+        </div>
+
+        <button id="save" class="save-btn">Save Preferences</button>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label for="whitelist"> Whitelist (one per line) </label>
-
-        <textarea
-          id="whitelist"
-          placeholder="*.youtube.com&#10;*.mail.google.com"
-        ></textarea>
-      </div>
-
-      <div class="checkbox-group">
-        <input type="checkbox" id="skipPinned" />
-        <label for="skipPinned">Skip pinned tabs</label>
-      </div>
-
-      <div class="checkbox-group">
-        <input type="checkbox" id="skipAudio" />
-        <label for="skipAudio">Skip tabs playing audio</label>
-      </div>
-
-      <div class="form-group">
-        <label for="mode">Suspension Mode</label>
-        <select id="mode">
-          <option value="discard">Discard (Best Memory Saving)</option>
-          <option value="autoReload">Auto Reload After Idle</option>
-          <option value="manualReload">Manual Reload (Reload on Click)</option>
-        </select>
-      </div>
-
-      <button id="save">Save Settings</button>
+    <div id="toast" class="success-toast">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      Settings saved successfully
     </div>
 
     <script src="options.js"></script>
