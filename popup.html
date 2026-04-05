@@ -197,6 +197,22 @@
       .scanning {
         animation: pulse 1.5s infinite ease-in-out;
       }
+
+      .footer {
+        text-align: center;
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s;
+      }
+      .footer a:hover {
+        color: var(--accent-hover);
+      }
     </style>
   </head>
   <body>
@@ -275,6 +291,10 @@
           Kill Idle Tabs Now
         </button>
         <button id="resetStats" class="secondary-btn">Reset Stats</button>
+      </div>
+
+      <div class="footer">
+        Developed by <a href="https://riponmondalbd.vercel.app/" target="_blank">Ripon</a>
       </div>
     </div>
 
