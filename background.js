@@ -15,6 +15,8 @@ let tabActivity = {};
 let activityLoaded = false;
 let activityLoadPromise = null;
 let isCheckingTabs = false;
+let badgeUpdateSeq = 0;
+let badgeTimer = null;
 
 // ===== Storage Helpers =====
 function getSettings() {
@@ -32,12 +34,28 @@ function updateBadge(count) {
   }
 }
 
+async function updateDynamicBadge() {
+  const seq = ++badgeUpdateSeq;
+  const tabs = await chrome.tabs.query({});
+  if (seq !== badgeUpdateSeq) return;
+  const suspendedCount = tabs.filter((t) => t.discarded).length;
+  updateBadge(suspendedCount);
+}
+
+function scheduleBadgeUpdate(delay = 150) {
+  if (badgeTimer) clearTimeout(badgeTimer);
+  badgeTimer = setTimeout(() => {
+    badgeTimer = null;
+    updateDynamicBadge();
+  }, delay);
+}
+
 async function incrementSuspendCount(amount = 1) {
   const settings = await getSettings();
   const newCount = (settings.suspendCount || 0) + amount;
 
   await chrome.storage.sync.set({ suspendCount: newCount });
-  updateBadge(newCount);
+  await updateDynamicBadge();
 
   return newCount;
 }
@@ -74,7 +92,7 @@ function matchWhitelist(url, whitelist) {
 // ===== Reset stats / Clear cache =====
 async function resetSuspendCount() {
   await chrome.storage.sync.set({ suspendCount: 0 });
-  updateBadge(0);
+  await updateDynamicBadge();
 }
 
 async function clearCache() {
@@ -185,6 +203,8 @@ async function checkTabs() {
       if (settings.clearAfter > 0 && totalCount >= settings.clearAfter) {
         await clearCache();
       }
+    } else {
+      await updateDynamicBadge();
     }
   } finally {
     isCheckingTabs = false;
@@ -213,16 +233,39 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   }
 
   await trackActivity(tabId);
+  scheduleBadgeUpdate(150);
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete" || changeInfo.url) {
     trackActivity(tabId);
   }
+  if (
+    changeInfo.discarded !== undefined ||
+    changeInfo.status === "loading" ||
+    changeInfo.status === "complete"
+  ) {
+    scheduleBadgeUpdate(100);
+  }
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => {
-  removeTabActivity(tabId);
+chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
+  await ensureActivityLoaded();
+  if (removedTabId in tabActivity) {
+    tabActivity[addedTabId] = tabActivity[removedTabId];
+    delete tabActivity[removedTabId];
+    await chrome.storage.local.set({ tabActivity });
+  }
+  scheduleBadgeUpdate(100);
+});
+
+chrome.tabs.onCreated.addListener(() => {
+  scheduleBadgeUpdate(100);
+});
+
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await removeTabActivity(tabId);
+  scheduleBadgeUpdate(100);
 });
 
 // ===== Initialize tab activity & alarm =====
@@ -258,8 +301,7 @@ async function ensureAlarm() {
 }
 
 async function restoreBadge() {
-  const settings = await getSettings();
-  updateBadge(settings.suspendCount || 0);
+  await updateDynamicBadge();
 }
 
 // ===== Startup =====
@@ -276,6 +318,7 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 ensureAlarm();
+updateDynamicBadge();
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) {
@@ -287,9 +330,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getStats") {
     chrome.tabs.query({}, (tabs) => {
+      const suspendedTabs = tabs.filter((t) => t.discarded).length;
+      updateBadge(suspendedTabs);
       sendResponse({
         totalTabs: tabs.length,
-        suspendedTabs: tabs.filter((t) => t.discarded).length,
+        suspendedTabs,
       });
     });
     return true;
