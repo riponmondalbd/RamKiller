@@ -328,21 +328,17 @@ async function ensureAlarm() {
   }
 }
 
-async function restoreBadge() {
-  await updateDynamicBadge();
-}
-
 // ===== Startup =====
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeTabActivity();
   await ensureAlarm();
-  await restoreBadge();
+  await updateDynamicBadge();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   await initializeTabActivity();
   await ensureAlarm();
-  await restoreBadge();
+  await updateDynamicBadge();
 });
 
 ensureAlarm();
