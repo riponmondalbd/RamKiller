@@ -178,14 +178,15 @@ async function checkTabs() {
       );
 
       try {
-        await chrome.tabs.discard(tab.id);
+        const discardedTab = await chrome.tabs.discard(tab.id);
+        const targetTabId = discardedTab?.id ?? tab.id;
         newlySuspended += 1;
 
         if (settings.mode === "autoReload") {
           const data = await chrome.storage.local.get("autoReloadTabs");
           const stored = data.autoReloadTabs || [];
-          if (!stored.includes(tab.id)) {
-            stored.push(tab.id);
+          if (!stored.includes(targetTabId)) {
+            stored.push(targetTabId);
             await chrome.storage.local.set({ autoReloadTabs: stored });
           }
         }
@@ -255,6 +256,14 @@ chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
     tabActivity[addedTabId] = tabActivity[removedTabId];
     delete tabActivity[removedTabId];
     await chrome.storage.local.set({ tabActivity });
+  }
+  const data = await chrome.storage.local.get("autoReloadTabs");
+  const autoReloadTabs = data.autoReloadTabs || [];
+  if (autoReloadTabs.includes(removedTabId)) {
+    const updated = autoReloadTabs.map((id) =>
+      id === removedTabId ? addedTabId : id
+    );
+    await chrome.storage.local.set({ autoReloadTabs: updated });
   }
   scheduleBadgeUpdate(100);
 });
