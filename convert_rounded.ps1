@@ -35,7 +35,7 @@ function Create-RoundedImage($srcPath, $dstPath, $size, $radius) {
     $img.Dispose()
 }
 
-$src = "d:\work\extenshion\RamKiller\icon_pro.png"
-Create-RoundedImage -srcPath $src -dstPath "d:\work\extenshion\RamKiller\icon_128.png" -size 128 -radius 24
-Create-RoundedImage -srcPath $src -dstPath "d:\work\extenshion\RamKiller\icon_48.png" -size 48 -radius 9
-Create-RoundedImage -srcPath $src -dstPath "d:\work\extenshion\RamKiller\icon_16.png" -size 16 -radius 3
+$src = Join-Path $PSScriptRoot "icon_pro.png"
+Create-RoundedImage -srcPath $src -dstPath (Join-Path $PSScriptRoot "icon_128.png") -size 128 -radius 24
+Create-RoundedImage -srcPath $src -dstPath (Join-Path $PSScriptRoot "icon_48.png") -size 48 -radius 9
+Create-RoundedImage -srcPath $src -dstPath (Join-Path $PSScriptRoot "icon_16.png") -size 16 -radius 3

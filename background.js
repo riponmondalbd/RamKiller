@@ -8,7 +8,16 @@ const DEFAULT_SETTINGS = {
   clearAfter: 20,
 };
 
+const ALARM_NAME = "tabCheck";
+const ALARM_PERIOD_MINUTES = 0.5; // Chrome MV3 minimum alarm interval (30s)
+const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
+
 let tabActivity = {};
+let activityLoaded = false;
+let activityLoadPromise = null;
+let isCheckingTabs = false;
+let badgeUpdateSeq = 0;
+let badgeTimer = null;
 
 // ===== Storage Helpers =====
 function getSettings() {
@@ -17,29 +26,68 @@ function getSettings() {
   });
 }
 
-async function incrementSuspendCount() {
+function updateBadge(count) {
+  if (count > 0) {
+    chrome.action.setBadgeText({ text: count.toString() });
+    chrome.action.setBadgeBackgroundColor({ color: "#ff6b00" });
+  } else {
+    chrome.action.setBadgeText({ text: "" });
+  }
+}
+
+function isTabSuspended(tab) {
+  return Boolean(
+    tab.discarded || (tab.url && tab.url.startsWith(SUSPENDED_PAGE_URL))
+  );
+}
+
+async function updateDynamicBadge() {
+  const seq = ++badgeUpdateSeq;
+  const tabs = await chrome.tabs.query({});
+  if (seq !== badgeUpdateSeq) return;
+  const suspendedCount = tabs.filter(isTabSuspended).length;
+  updateBadge(suspendedCount);
+}
+
+function scheduleBadgeUpdate(delay = 150) {
+  if (badgeTimer) clearTimeout(badgeTimer);
+  badgeTimer = setTimeout(() => {
+    badgeTimer = null;
+    updateDynamicBadge();
+  }, delay);
+}
+
+async function incrementSuspendCount(amount = 1) {
   const settings = await getSettings();
-  const newCount = (settings.suspendCount || 0) + 1;
+  const newCount = (settings.suspendCount || 0) + amount;
 
   await chrome.storage.sync.set({ suspendCount: newCount });
-  chrome.action.setBadgeText({ text: newCount.toString() });
-  chrome.action.setBadgeBackgroundColor({ color: "#ff6b00" });
+  await updateDynamicBadge();
 
-  console.log("Suspended tabs count:", newCount);
   return newCount;
 }
 
-// ===== Whitelist check =====
-function matchWhitelist(url, whitelist) {
+// ===== Whitelist & URL checks =====
+function isSuspendableUrl(url) {
   if (!url) return false;
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
+function matchWhitelist(url, whitelist) {
+  if (!url || !Array.isArray(whitelist) || whitelist.length === 0) return false;
 
   try {
-    const hostname = new URL(url).hostname;
-    return whitelist.some((rule) => {
-      rule = rule.trim();
+    const hostname = new URL(url).hostname.toLowerCase();
+    return whitelist.some((rawRule) => {
+      const rule = rawRule.trim().toLowerCase();
+      if (!rule) return false;
+
       if (rule.startsWith("*.")) {
-        const domain = rule.replace("*.", "");
-        return hostname.endsWith(domain);
+        const domain = rule.slice(2);
+        return (
+          domain.length > 0 &&
+          (hostname === domain || hostname.endsWith("." + domain))
+        );
       }
       return hostname === rule;
     });
@@ -48,153 +96,289 @@ function matchWhitelist(url, whitelist) {
   }
 }
 
-// ===== Clear cache =====
+// ===== Reset stats / Clear cache =====
+async function resetSuspendCount() {
+  await chrome.storage.sync.set({ suspendCount: 0 });
+  await updateDynamicBadge();
+}
+
 async function clearCache() {
   await chrome.browsingData.remove({ since: 0 }, { cache: true });
-  await chrome.storage.sync.set({ suspendCount: 0 });
-  chrome.action.setBadgeText({ text: "" });
+  await resetSuspendCount();
   console.log("Cache cleared & suspend count reset");
 }
 
 // ===== Track tab activity =====
-function trackActivity(tabId) {
-  tabActivity[tabId] = Date.now();
-  chrome.storage.local.set({ tabActivity });
-  console.log("Activity tracked for tab:", tabId);
+async function ensureActivityLoaded() {
+  if (activityLoaded) return;
+  if (!activityLoadPromise) {
+    activityLoadPromise = chrome.storage.local
+      .get("tabActivity")
+      .then((data) => {
+        tabActivity = data.tabActivity || {};
+        activityLoaded = true;
+      })
+      .finally(() => {
+        activityLoadPromise = null;
+      });
+  }
+  await activityLoadPromise;
 }
 
-async function loadActivity() {
-  const data = await chrome.storage.local.get("tabActivity");
-  tabActivity = data.tabActivity || {};
-  console.log("Loaded tab activity:", tabActivity);
+async function trackActivity(tabId) {
+  if (!tabId) return;
+  await ensureActivityLoaded();
+  tabActivity[tabId] = Date.now();
+  await chrome.storage.local.set({ tabActivity });
+}
+
+async function removeTabActivity(tabId) {
+  if (!tabId) return;
+  await ensureActivityLoaded();
+  if (tabId in tabActivity) {
+    delete tabActivity[tabId];
+    await chrome.storage.local.set({ tabActivity });
+  }
+
+  const data = await chrome.storage.local.get("autoReloadTabs");
+  const autoReloadTabs = data.autoReloadTabs || [];
+  if (autoReloadTabs.includes(tabId)) {
+    await chrome.storage.local.set({
+      autoReloadTabs: autoReloadTabs.filter((id) => id !== tabId),
+    });
+  }
 }
 
 // ===== Core Logic: suspend idle tabs =====
 async function checkTabs() {
-  const settings = await getSettings();
-  const now = Date.now();
+  if (isCheckingTabs) return;
+  isCheckingTabs = true;
 
-  console.log("Checking tabs...");
+  try {
+    await ensureActivityLoaded();
+    const settings = await getSettings();
+    const idleThreshold = Math.max(1, Number(settings.idleTime) || DEFAULT_SETTINGS.idleTime);
+    const now = Date.now();
 
-  chrome.tabs.query({}, async (tabs) => {
+    const tabs = await chrome.tabs.query({});
+    let activityChanged = false;
+    let newlySuspended = 0;
+
     for (const tab of tabs) {
-      if (!tab.id || tab.active) continue;
+      if (!tab.id || tab.active || isTabSuspended(tab)) continue;
       if (settings.skipPinned && tab.pinned) continue;
       if (settings.skipAudio && tab.audible) continue;
-      if (!tab.url || tab.url.startsWith("chrome://")) continue;
+      if (!isSuspendableUrl(tab.url)) continue;
       if (matchWhitelist(tab.url, settings.whitelist)) continue;
 
-      const lastActive = tabActivity[tab.id] || now;
-      const idleMinutes = (now - lastActive) / 60000;
+      if (!(tab.id in tabActivity)) {
+        tabActivity[tab.id] = now;
+        activityChanged = true;
+        continue;
+      }
 
-      if (idleMinutes >= settings.idleTime) {
-        console.log(
-          `Tab ${tab.id} idle for ${idleMinutes.toFixed(2)} mins → suspending`,
-        );
+      const idleMinutes = (now - tabActivity[tab.id]) / 60000;
+      if (idleMinutes < idleThreshold) continue;
 
-        try {
-          if (settings.mode === "discard") {
-            await chrome.tabs.discard(tab.id);
-          } else if (settings.mode === "autoReload") {
-            await chrome.tabs.reload(tab.id);
-          } else if (settings.mode === "manualReload") {
-            const stored =
-              (await chrome.storage.local.get("manualTabs")).manualTabs || [];
-            if (!stored.includes(tab.id)) {
-              stored.push(tab.id);
-              await chrome.storage.local.set({ manualTabs: stored });
+      console.log(
+        `Tab ${tab.id} idle for ${idleMinutes.toFixed(2)} mins -> suspending (${settings.mode})`
+      );
+
+      try {
+        if (settings.mode === "manualReload") {
+          const query = new URLSearchParams({
+            url: tab.url,
+            title: tab.title || "",
+            favIconUrl: tab.favIconUrl || "",
+          });
+          await chrome.tabs.update(tab.id, {
+            url: `${SUSPENDED_PAGE_URL}?${query.toString()}`,
+          });
+          newlySuspended += 1;
+        } else {
+          const discardedTab = await chrome.tabs.discard(tab.id);
+          const targetTabId = discardedTab?.id ?? tab.id;
+          newlySuspended += 1;
+
+          if (settings.mode === "autoReload") {
+            const data = await chrome.storage.local.get("autoReloadTabs");
+            const stored = data.autoReloadTabs || [];
+            if (!stored.includes(targetTabId)) {
+              stored.push(targetTabId);
+              await chrome.storage.local.set({ autoReloadTabs: stored });
             }
-            await chrome.tabs.discard(tab.id);
           }
-        } catch (e) {
-          console.warn("Failed tab operation:", e);
         }
-
-        const count = await incrementSuspendCount();
-        if (count >= settings.clearAfter) {
-          await clearCache();
-        }
+      } catch (e) {
+        console.warn(`Failed to suspend tab ${tab.id}:`, e);
       }
     }
-  });
+
+    if (activityChanged) {
+      await chrome.storage.local.set({ tabActivity });
+    }
+
+    if (newlySuspended > 0) {
+      const totalCount = await incrementSuspendCount(newlySuspended);
+      if (settings.clearAfter > 0 && totalCount >= settings.clearAfter) {
+        await clearCache();
+      }
+    } else {
+      await updateDynamicBadge();
+    }
+  } finally {
+    isCheckingTabs = false;
+  }
 }
 
-// ===== Manual reload on tab click =====
+// ===== Tab Event Listeners =====
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
-  console.log("Tab activated:", tabId);
   const settings = await getSettings();
 
-  if (settings.mode === "manualReload") {
-    const stored =
-      (await chrome.storage.local.get("manualTabs")).manualTabs || [];
+  if (settings.mode === "autoReload") {
+    const data = await chrome.storage.local.get("autoReloadTabs");
+    const stored = data.autoReloadTabs || [];
     if (stored.includes(tabId)) {
-      await chrome.tabs.reload(tabId);
       const updated = stored.filter((id) => id !== tabId);
-      await chrome.storage.local.set({ manualTabs: updated });
-      console.log("Manually reloaded tab:", tabId);
+      await chrome.storage.local.set({ autoReloadTabs: updated });
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (tab && tab.status !== "loading") {
+          await chrome.tabs.reload(tabId);
+        }
+      } catch (e) {
+        console.warn(`Failed to auto-reload tab ${tabId}:`, e);
+      }
     }
   }
 
-  trackActivity(tabId);
+  await trackActivity(tabId);
+  scheduleBadgeUpdate(150);
 });
 
-chrome.tabs.onUpdated.addListener((tabId) => {
-  trackActivity(tabId);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "complete" || changeInfo.url) {
+    trackActivity(tabId);
+  }
+  if (
+    changeInfo.discarded !== undefined ||
+    changeInfo.status === "loading" ||
+    changeInfo.status === "complete"
+  ) {
+    scheduleBadgeUpdate(100);
+  }
 });
 
-// ===== Initialize tab activity on startup =====
+chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
+  await ensureActivityLoaded();
+  if (removedTabId in tabActivity) {
+    tabActivity[addedTabId] = tabActivity[removedTabId];
+    delete tabActivity[removedTabId];
+    await chrome.storage.local.set({ tabActivity });
+  }
+  const data = await chrome.storage.local.get("autoReloadTabs");
+  const autoReloadTabs = data.autoReloadTabs || [];
+  if (autoReloadTabs.includes(removedTabId)) {
+    const updated = autoReloadTabs.map((id) =>
+      id === removedTabId ? addedTabId : id
+    );
+    await chrome.storage.local.set({ autoReloadTabs: updated });
+  }
+  scheduleBadgeUpdate(100);
+});
+
+chrome.tabs.onCreated.addListener(() => {
+  scheduleBadgeUpdate(100);
+});
+
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await removeTabActivity(tabId);
+  scheduleBadgeUpdate(100);
+});
+
+// ===== Initialize tab activity & alarm =====
 async function initializeTabActivity() {
+  await ensureActivityLoaded();
   const tabs = await chrome.tabs.query({});
   const now = Date.now();
+  const activeTabIds = new Set();
+
   for (const tab of tabs) {
-    if (tab.id) tabActivity[tab.id] = now;
+    if (tab.id) {
+      activeTabIds.add(tab.id);
+      if (!(tab.id in tabActivity)) {
+        tabActivity[tab.id] = now;
+      }
+    }
   }
-  console.log("Initialized tabActivity for all tabs");
+
+  for (const id of Object.keys(tabActivity)) {
+    if (!activeTabIds.has(Number(id))) {
+      delete tabActivity[id];
+    }
+  }
+
+  await chrome.storage.local.set({ tabActivity });
+}
+
+async function ensureAlarm() {
+  const existing = await chrome.alarms.get(ALARM_NAME);
+  if (!existing) {
+    chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
+  }
+}
+
+async function restoreBadge() {
+  await updateDynamicBadge();
 }
 
 // ===== Startup =====
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log("Extension installed");
-  await loadActivity();
   await initializeTabActivity();
+  await ensureAlarm();
+  await restoreBadge();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-  console.log("Extension started");
-  await loadActivity();
   await initializeTabActivity();
+  await ensureAlarm();
+  await restoreBadge();
 });
 
-// ===== Alarm for periodic tab checking (every 10s for testing) =====
-chrome.alarms.create("tabCheck", { periodInMinutes: 0.1667 });
+ensureAlarm();
+updateDynamicBadge();
+
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "tabCheck") {
-    console.log("Alarm fired → checking tabs");
+  if (alarm.name === ALARM_NAME) {
     checkTabs();
   }
 });
 
 // ===== Message Listener for Popup/Options =====
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getStats") {
     chrome.tabs.query({}, (tabs) => {
+      const suspendedTabs = tabs.filter(isTabSuspended).length;
+      updateBadge(suspendedTabs);
       sendResponse({
         totalTabs: tabs.length,
-        suspendedTabs: tabs.filter((t) => t.discarded).length,
+        suspendedTabs,
       });
     });
-    return true; // Keep channel open for async response
+    return true;
   }
 
   if (message.action === "killIdleNow") {
-    checkTabs();
-    sendResponse({ status: "killing" });
+    checkTabs()
+      .then(() => sendResponse({ status: "done" }))
+      .catch((err) => sendResponse({ status: "error", error: err.message }));
+    return true;
   }
 
   if (message.action === "resetCount") {
-    clearCache();
-    sendResponse({ status: "reset" });
+    resetSuspendCount()
+      .then(() => sendResponse({ status: "reset" }))
+      .catch((err) => sendResponse({ status: "error", error: err.message }));
+    return true;
   }
 });
-
-console.log("Service worker loaded ✅");

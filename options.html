@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ram Killer - Settings</title>
-    <link rel="icon" type="image/png" href="icon_pro.png" />
+    <title>Ram Killer Pro - Settings</title>
+    <link rel="icon" type="image/png" href="icon_48.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,73 +13,97 @@
     />
     <style>
       :root {
-        --bg: #f8fafc;
-        --card: #ffffff;
+        --bg: #0b1120;
+        --card: rgba(30, 41, 59, 0.72);
+        --surface: rgba(15, 23, 42, 0.65);
         --accent: #fb923c;
         --accent-hover: #f97316;
-        --text-base: #1e293b;
-        --text-muted: #64748b;
-        --border: #e2e8f0;
-        --input-focus: #fb923c;
-        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        --text-base: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: rgba(255, 255, 255, 0.09);
+        --border-hover: rgba(255, 255, 255, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
-        font-family: "Outfit", sans-serif;
-        background: var(--bg);
+        font-family: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at 50% 0%, rgba(251, 146, 60, 0.14), transparent 55%),
+          var(--bg);
         color: var(--text-base);
         margin: 0;
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        padding: 40px 20px;
+        padding: 40px 20px 64px;
       }
 
       .settings-container {
         width: 100%;
-        max-width: 580px;
+        max-width: 600px;
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        gap: 20px;
       }
 
       header {
         text-align: center;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
+      }
+
+      .logo-badge {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 14px;
+        border-radius: 18px;
+        background: rgba(251, 146, 60, 0.12);
+        border: 1px solid rgba(251, 146, 60, 0.28);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 12px 30px rgba(251, 146, 60, 0.15);
+      }
+
+      .logo-badge img {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
       }
 
       header h1 {
         margin: 0;
-        font-size: 32px;
+        font-size: 30px;
         font-weight: 700;
         letter-spacing: -0.025em;
       }
 
       header p {
         color: var(--text-muted);
-        margin-top: 8px;
-        font-size: 16px;
+        margin-top: 6px;
+        font-size: 15px;
       }
 
       .card {
         background: var(--card);
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 32px;
-        box-shadow: var(--shadow);
+        border-radius: 18px;
+        padding: 28px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
       }
 
       .section-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        margin-bottom: 24px;
+        margin-bottom: 18px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
       }
 
       .section-title::after {
@@ -90,126 +114,186 @@
       }
 
       .form-group {
-        margin-bottom: 24px;
-      }
-
-      .form-group:last-child {
-        margin-bottom: 0;
+        margin-bottom: 22px;
       }
 
       label {
         display: block;
         font-size: 15px;
-        font-weight: 500;
-        margin-bottom: 8px;
+        font-weight: 600;
+        margin-bottom: 4px;
       }
 
       .label-desc {
         font-size: 13px;
         color: var(--text-muted);
         display: block;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
 
       input[type="number"],
       select,
       textarea {
         width: 100%;
-        padding: 12px 16px;
-        border: 1.5px solid var(--border);
+        padding: 12px 14px;
+        background: var(--surface);
+        color: var(--text-base);
+        border: 1px solid var(--border);
         border-radius: 10px;
-        font-size: 15px;
+        font-size: 14px;
         font-family: inherit;
         transition: all 0.2s;
-        box-sizing: border-box;
+      }
+
+      select option {
+        background: #0f172a;
+        color: #f8fafc;
       }
 
       input[type="number"]:focus,
       select:focus,
       textarea:focus {
         outline: none;
-        border-color: var(--input-focus);
-        box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.15);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.18);
       }
 
       textarea {
         resize: vertical;
-        min-height: 120px;
+        min-height: 115px;
+        line-height: 1.5;
+      }
+
+      .input-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .unit-pill {
+        padding: 11px 16px;
+        border-radius: 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        white-space: nowrap;
       }
 
       .checkbox-group {
         display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 12px;
-        background: #f1f5f9;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 12px;
-        margin-bottom: 12px;
-        transition: background 0.2s;
+        margin-bottom: 10px;
+        transition: all 0.2s;
         cursor: pointer;
       }
 
       .checkbox-group:hover {
-        background: #e2e8f0;
+        border-color: var(--border-hover);
+        background: rgba(30, 41, 59, 0.7);
       }
 
-      .checkbox-group input {
-        width: 18px;
-        height: 18px;
-        margin-top: 2px;
-        cursor: pointer;
-        accent-color: var(--accent);
+      .checkbox-text {
+        flex: 1;
       }
 
       .checkbox-label {
-        font-size: 15px;
-        font-weight: 500;
-        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        display: block;
       }
 
       .checkbox-desc {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--text-muted);
         display: block;
         margin-top: 2px;
       }
 
-      .save-btn {
+      .toggle-input {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 44px;
+        height: 24px;
+        background: rgba(148, 163, 184, 0.25);
+        border-radius: 999px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+
+      .toggle-input::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ffffff;
+        transition: transform 0.2s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .toggle-input:checked {
         background: var(--accent);
-        color: white;
+      }
+
+      .toggle-input:checked::after {
+        transform: translateX(20px);
+      }
+
+      .save-btn {
+        background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+        color: #ffffff;
         border: none;
-        padding: 16px;
+        padding: 15px;
         border-radius: 12px;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
+        font-family: inherit;
         cursor: pointer;
         width: 100%;
+        margin-top: 8px;
         transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(251, 146, 60, 0.3);
+        box-shadow: 0 6px 18px rgba(249, 115, 22, 0.3);
       }
 
-      .save-btn:hover {
-        background: var(--accent-hover);
+      .save-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(251, 146, 60, 0.4);
+        box-shadow: 0 8px 22px rgba(249, 115, 22, 0.42);
       }
 
-      .save-btn:active {
+      .save-btn:active:not(:disabled) {
         transform: translateY(0);
+      }
+
+      .save-btn:disabled {
+        opacity: 0.7;
+        cursor: wait;
       }
 
       .success-toast {
         position: fixed;
-        bottom: 20px;
+        bottom: 24px;
         left: 50%;
         transform: translateX(-50%) translateY(100px);
         background: #10b981;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 30px;
+        color: #ffffff;
+        padding: 12px 22px;
+        border-radius: 999px;
+        font-size: 14px;
         font-weight: 600;
-        box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
-        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 10px 24px rgba(16, 185, 129, 0.35);
+        transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         display: flex;
         align-items: center;
         gap: 8px;
@@ -222,16 +306,17 @@
 
       .footer {
         text-align: center;
-        margin-top: 16px;
-        font-size: 14px;
+        margin-top: 4px;
+        font-size: 13px;
         color: var(--text-muted);
       }
+
       .footer a {
         color: var(--accent);
         text-decoration: none;
         font-weight: 600;
-        transition: color 0.2s;
       }
+
       .footer a:hover {
         color: var(--accent-hover);
       }
@@ -240,9 +325,11 @@
   <body>
     <div class="settings-container">
       <header>
-        <img src="icon_pro.png" alt="logo" style="width: 64px; height: 64px; margin-bottom: 16px;">
+        <div class="logo-badge">
+          <img src="icon_128.png" alt="logo" />
+        </div>
         <h1>Ram Killer <span style="color: var(--accent)">Pro</span></h1>
-        <p>Optimize your browser's performance</p>
+        <p>Configure tab suspension behavior and domain exceptions</p>
       </header>
 
       <div class="card">
@@ -253,18 +340,16 @@
           <span class="label-desc"
             >Suspend inactive tabs after this many minutes.</span
           >
-          <div style="display: flex; align-items: center; gap: 12px">
-            <input type="number" id="idleTime" min="1" value="10" />
-            <span style="font-weight: 500; color: var(--text-muted)"
-              >minutes</span
-            >
+          <div class="input-row">
+            <input type="number" id="idleTime" min="1" value="5" />
+            <span class="unit-pill">minutes</span>
           </div>
         </div>
 
         <div class="form-group">
           <label for="mode">Suspension Mode</label>
           <span class="label-desc"
-            >How should the extension handle idle tabs?</span
+            >Choose how the extension handles idle tabs.</span
           >
           <select id="mode">
             <option value="discard">Discard (Best Memory Saving)</option>
@@ -273,25 +358,25 @@
           </select>
         </div>
 
-        <div class="section-title">Exceptions</div>
+        <div class="section-title" style="margin-top: 28px">Exceptions</div>
 
         <label class="checkbox-group">
-          <input type="checkbox" id="skipPinned" checked />
-          <div>
+          <div class="checkbox-text">
             <span class="checkbox-label">Skip pinned tabs</span>
             <span class="checkbox-desc">Keep your important pinned tabs always active.</span>
           </div>
+          <input type="checkbox" id="skipPinned" class="toggle-input" checked />
         </label>
 
         <label class="checkbox-group">
-          <input type="checkbox" id="skipAudio" checked />
-          <div>
+          <div class="checkbox-text">
             <span class="checkbox-label">Skip tabs playing audio</span>
             <span class="checkbox-desc">Don't interrupt your music or video streams.</span>
           </div>
+          <input type="checkbox" id="skipAudio" class="toggle-input" checked />
         </label>
 
-        <div class="form-group" style="margin-top: 24px">
+        <div class="form-group" style="margin-top: 22px">
           <label for="whitelist">Domain Whitelist</label>
           <span class="label-desc"
             >One domain per line. Supports wildcards (e.g., *.youtube.com).</span
@@ -313,8 +398,8 @@
     <div id="toast" class="success-toast">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
+        width="18"
+        height="18"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
