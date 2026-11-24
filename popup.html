@@ -188,6 +188,53 @@
         border-color: var(--text-muted);
       }
 
+      .whitelist-btn {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--glass-border);
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .whitelist-btn:hover:not(:disabled) {
+        border-color: var(--accent);
+        background: rgba(251, 146, 60, 0.1);
+      }
+
+      .whitelist-btn.whitelisted {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.45);
+        color: #34d399;
+      }
+
+      .whitelist-btn.whitelisted:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.45);
+        color: #f87171;
+      }
+
+      .whitelist-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .whitelist-domain {
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       @keyframes pulse {
         0% { opacity: 1; }
         50% { opacity: 0.5; }
@@ -273,6 +320,22 @@
       </div>
 
       <div class="actions">
+        <button id="whitelistBtn" class="whitelist-btn" disabled>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span id="whitelistText" class="whitelist-domain">Checking site...</span>
+        </button>
         <button id="killNow" class="primary-btn">
           <svg
             xmlns="http://www.w3.org/2000/svg"
