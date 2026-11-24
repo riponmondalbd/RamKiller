@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS = {
 
 const ALARM_NAME = "tabCheck";
 const ALARM_PERIOD_MINUTES = 0.5; // Chrome MV3 minimum alarm interval (30s)
+const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 
 let tabActivity = {};
 let activityLoaded = false;
@@ -34,11 +35,17 @@ function updateBadge(count) {
   }
 }
 
+function isTabSuspended(tab) {
+  return Boolean(
+    tab.discarded || (tab.url && tab.url.startsWith(SUSPENDED_PAGE_URL))
+  );
+}
+
 async function updateDynamicBadge() {
   const seq = ++badgeUpdateSeq;
   const tabs = await chrome.tabs.query({});
   if (seq !== badgeUpdateSeq) return;
-  const suspendedCount = tabs.filter((t) => t.discarded).length;
+  const suspendedCount = tabs.filter(isTabSuspended).length;
   updateBadge(suspendedCount);
 }
 
@@ -158,7 +165,7 @@ async function checkTabs() {
     let newlySuspended = 0;
 
     for (const tab of tabs) {
-      if (!tab.id || tab.active || tab.discarded) continue;
+      if (!tab.id || tab.active || isTabSuspended(tab)) continue;
       if (settings.skipPinned && tab.pinned) continue;
       if (settings.skipAudio && tab.audible) continue;
       if (!isSuspendableUrl(tab.url)) continue;
@@ -178,20 +185,32 @@ async function checkTabs() {
       );
 
       try {
-        const discardedTab = await chrome.tabs.discard(tab.id);
-        const targetTabId = discardedTab?.id ?? tab.id;
-        newlySuspended += 1;
+        if (settings.mode === "manualReload") {
+          const query = new URLSearchParams({
+            url: tab.url,
+            title: tab.title || "",
+            favIconUrl: tab.favIconUrl || "",
+          });
+          await chrome.tabs.update(tab.id, {
+            url: `${SUSPENDED_PAGE_URL}?${query.toString()}`,
+          });
+          newlySuspended += 1;
+        } else {
+          const discardedTab = await chrome.tabs.discard(tab.id);
+          const targetTabId = discardedTab?.id ?? tab.id;
+          newlySuspended += 1;
 
-        if (settings.mode === "autoReload") {
-          const data = await chrome.storage.local.get("autoReloadTabs");
-          const stored = data.autoReloadTabs || [];
-          if (!stored.includes(targetTabId)) {
-            stored.push(targetTabId);
-            await chrome.storage.local.set({ autoReloadTabs: stored });
+          if (settings.mode === "autoReload") {
+            const data = await chrome.storage.local.get("autoReloadTabs");
+            const stored = data.autoReloadTabs || [];
+            if (!stored.includes(targetTabId)) {
+              stored.push(targetTabId);
+              await chrome.storage.local.set({ autoReloadTabs: stored });
+            }
           }
         }
       } catch (e) {
-        console.warn(`Failed to discard tab ${tab.id}:`, e);
+        console.warn(`Failed to suspend tab ${tab.id}:`, e);
       }
     }
 
@@ -339,7 +358,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getStats") {
     chrome.tabs.query({}, (tabs) => {
-      const suspendedTabs = tabs.filter((t) => t.discarded).length;
+      const suspendedTabs = tabs.filter(isTabSuspended).length;
       updateBadge(suspendedTabs);
       sendResponse({
         totalTabs: tabs.length,
