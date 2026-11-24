@@ -6,6 +6,8 @@ const DEFAULT_SETTINGS = {
   mode: "discard",
 };
 
+let toastTimer = null;
+
 function getSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(DEFAULT_SETTINGS, resolve);
@@ -25,9 +27,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 document.getElementById("save").addEventListener("click", async () => {
   const btn = document.getElementById("save");
   const originalText = btn.innerText;
+  const idleInput = document.getElementById("idleTime");
+
+  const parsedIdle = Number(idleInput.value);
+  const validIdleTime =
+    Number.isFinite(parsedIdle) && parsedIdle >= 1
+      ? Math.round(parsedIdle)
+      : DEFAULT_SETTINGS.idleTime;
+  idleInput.value = validIdleTime;
 
   const settings = {
-    idleTime: Number(document.getElementById("idleTime").value),
+    idleTime: validIdleTime,
     whitelist: document
       .getElementById("whitelist")
       .value.split("\n")
@@ -47,13 +57,15 @@ document.getElementById("save").addEventListener("click", async () => {
     btn.disabled = false;
     btn.innerText = originalText;
     showToast();
-  }, 600);
+  }, 400);
 });
 
 function showToast() {
   const toast = document.getElementById("toast");
   toast.classList.add("show");
-  setTimeout(() => {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
     toast.classList.remove("show");
+    toastTimer = null;
   }, 3000);
 }
